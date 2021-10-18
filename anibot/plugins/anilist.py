@@ -64,12 +64,10 @@ async def anime_cmd(client: anibot, message: Message, mdata: dict):
         await asyncio.sleep(5)
         return await k.delete()
     query = text[1]
-    auth = False
     vars_ = {"search": query}
     if query.isdigit():
         vars_ = {"id": int(query)}
-    if (await AUTH_USERS.find_one({"id": user})):
-        auth = True
+    auth = bool((await AUTH_USERS.find_one({"id": user})))
     result = await get_anime(vars_, user=user, auth=auth)
     if len(result) != 1:
         title_img, finals_ = result[0], result[1]
@@ -110,9 +108,7 @@ async def manga_cmd(client: anibot, message: Message, mdata: dict):
     query = text[1]
     qdb = rand_key()
     MANGA_DB[qdb] = query
-    auth = False
-    if (await AUTH_USERS.find_one({"id": user})):
-        auth = True
+    auth = bool((await AUTH_USERS.find_one({"id": user})))
     result = await get_manga(qdb, 1, auth=auth, user=user)
     if len(result) == 1:
         k = await message.reply_text(result[0])
@@ -153,9 +149,7 @@ async def character_cmd(client: anibot, message: Message, mdata: dict):
     query = text[1]
     qdb = rand_key()
     CHAR_DB[qdb]=query
-    auth = False
-    if (await AUTH_USERS.find_one({"id": user})):
-        auth = True
+    auth = bool((await AUTH_USERS.find_one({"id": user})))
     result = await get_character(qdb, 1, auth=auth, user=user)
     if len(result) == 1:
         k = await message.reply_text(result[0])
@@ -183,9 +177,7 @@ async def anilist_cmd(client: anibot, message: Message, mdata: dict):
     query = text[1]
     qdb = rand_key()
     ANIME_DB[qdb] = query
-    auth = False
-    if (await AUTH_USERS.find_one({"id": user})):
-        auth = True
+    auth = bool((await AUTH_USERS.find_one({"id": user})))
     result = await get_anilist(qdb, 1, auth=auth, user=user)
     if len(result) == 1:
         k = await message.reply_text(result[0])
@@ -211,7 +203,7 @@ async def flex_cmd(client: anibot, message: Message, mdata: dict):
     if "user" in query[0]:
         if find_gc is not None and 'user' in find_gc['cmd_list'].split():
             return
-        if not len(query)==2:
+        if len(query) != 2:
             k = await message.reply_text("Please give an anilist username to search about\nexample: /user Lostb053")
             await asyncio.sleep(5)
             return await k.delete()
@@ -220,7 +212,9 @@ async def flex_cmd(client: anibot, message: Message, mdata: dict):
     if find_gc is not None and 'flex' in find_gc['cmd_list'].split():
         return
     user = mdata['from_user']['id']
-    if not "user" in query[0] and not (await AUTH_USERS.find_one({"id": user})):
+    if "user" not in query[0] and not (
+        await AUTH_USERS.find_one({"id": user})
+    ):
         return await message.reply_text(
             "Please connect your account first to use this cmd",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Auth", url=f"https://t.me/{BOT_NAME.replace('@', '')}/?start=auth")]])
@@ -242,9 +236,7 @@ async def top_tags_cmd(client: anibot, message: Message, mdata: dict):
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'top' in find_gc['cmd_list'].split():
         return
-    get_tag = "None"
-    if len(query)==2:
-        get_tag = query[1]
+    get_tag = query[1] if len(query)==2 else "None"
     user = mdata['from_user']['id']
     result = await get_top_animes(get_tag, 1, user)
     if len(result) == 1:
@@ -274,10 +266,8 @@ async def airing_cmd(client: anibot, message: Message, mdata: dict):
     vars_ = {"search": query}
     if query.isdigit():
         vars_ = {"id": int(query), "asHtml": True}
-    auth = False
     user = mdata['from_user']['id']
-    if (await AUTH_USERS.find_one({"id": user})):
-        auth = True
+    auth = bool((await AUTH_USERS.find_one({"id": user})))
     result = await get_airing(vars_, auth=auth, user=user)
     if len(result) == 1:
         k = await message.reply_text(result[0])
@@ -347,9 +337,7 @@ Headlines will toggle notifications for anime news powered by livechart.me
         sp = "Subsplease Updates: OFF"
         if await (SG.find_one({"_id": cid})):
             sp = "Subsplease Updates: ON"
-        hd = "Headlines: OFF"
-        if await (HD.find_one({"_id": cid})):
-            hd = "Headlines: ON"
+        hd = "Headlines: ON" if await (HD.find_one({"_id": cid})) else "Headlines: OFF"
         await message.reply_text(
             text = text,
             reply_markup=InlineKeyboardMarkup([
@@ -863,7 +851,7 @@ async def additional_info_btn(client: anibot, cq: CallbackQuery, cdata: dict):
         return
     if len(result) > 1000:
         result = result[:940] + "..."
-        if spoiler is False:
+        if not spoiler:
             result += "\n\nFor more info click below given button"
             button.append([InlineKeyboardButton(text="More Info", url=f"https://t.me/{bot}/?start=des_{ctgry}_{query}")])
     add_ = ""
@@ -900,9 +888,9 @@ async def featured_in_btn(client: anibot, cq: CallbackQuery, cdata: dict):
     if result[0] is False:
         result = await get_featured_in_lists(int(idm), "MAN")
         req = None
-        if result[0] is False:
-            await cq.answer("No Data Available!!!")
-            return
+    if result[0] is False:
+        await cq.answer("No Data Available!!!")
+        return
     [msg, total], pic = result
     button = []
     totalpg, kek = divmod(total, 15)
